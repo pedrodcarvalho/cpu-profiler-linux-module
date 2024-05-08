@@ -1,0 +1,1 @@
+cmd_/home/gabriel/labs/cpu-profiler-linux-module/cpu_profiler.ko := ld -r -m elf_x86_64 -z noexecstack --build-id=sha1  -T scripts/module.lds -o /home/gabriel/labs/cpu-profiler-linux-module/cpu_profiler.ko /home/gabriel/labs/cpu-profiler-linux-module/cpu_profiler.o /home/gabriel/labs/cpu-profiler-linux-module/cpu_profiler.mod.o;  true

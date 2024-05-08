@@ -1,0 +1,1 @@
+cmd_/home/gabriel/labs/cpu-profiler-linux-module/cpu_profiler.mod := { echo  /home/gabriel/labs/cpu-profiler-linux-module/cpu_profiler.o;  echo; } > /home/gabriel/labs/cpu-profiler-linux-module/cpu_profiler.mod

@@ -1,0 +1,1 @@
+cmd_/home/gabriel/labs/cpu-profiler-linux-module/Module.symvers := sed 's/\.ko$$/\.o/' /home/gabriel/labs/cpu-profiler-linux-module/modules.order | scripts/mod/modpost -m -a  -o /home/gabriel/labs/cpu-profiler-linux-module/Module.symvers -e -i Module.symvers   -T -

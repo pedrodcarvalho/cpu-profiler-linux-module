@@ -1,12 +1,33 @@
+# Define compiler and flags
+CC := gcc
+CFLAGS := -Wall -Wextra
+
+# Kernel directory for module build
+KDIR := /lib/modules/$(shell uname -r)/build
+
+# Targets for make
 all: clean modules app
 
-obj-m := cpu_profiler.o
+# Build the kernel module
+obj-m += cpu_profiler.o
+modules:
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
-modules: cpu_profiler.c cpu_profiler.h
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) CC=x86_64-linux-gnu-gcc-13 modules
+# Build the user application
+app:
+	$(CC) $(CFLAGS) -o userapp userapp.c
 
-app: userapp.c
-	gcc -o userapp userapp.c
-
+# Clean up the build artifacts
 clean:
-	rm -f userapp *.ko *.o *.mod *.symvers *.order *.mod.c *.mod.o .*.cmd
+	rm -f userapp *.ko *.o *.mod *.mod.c *.symvers *.order .*.cmd *.mod.o
+
+# Help target to display callable targets and their description
+help:
+	@echo "Usage:"
+	@echo "  make [target]"
+	@echo ""
+	@echo "Targets:"
+	@echo "  all     Builds all targets"
+	@echo "  modules Build the kernel module"
+	@echo "  app     Build the user space application"
+	@echo "  clean   Remove all generated files"
