@@ -17,7 +17,7 @@ int get_cpu_use(int pid, unsigned long *cpu_use)
     task = find_task_by_pid(pid);
 
     if (task != NULL) {
-        *cpu_use = jiffies_to_msecs(clock_t_to_jiffies(task->utime));
+        *cpu_use = task->utime / 1000000000;
         rcu_read_unlock();
         return 0;
     }
