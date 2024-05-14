@@ -106,7 +106,18 @@ static int log_proc_show(struct seq_file *m, void *v)
     // It's being used seq_file because it simplifies the reading process
     list_for_each_entry(tmp, &cpu_profiler_linked_list, cpu_profiler_list)
     {
-        seq_printf(m, "PID: %ld | CPU Time: %ld\n", tmp->pid, tmp->user_time);
+        struct task_struct *task;
+        task = find_task_by_pid(tmp->pid);
+
+        int minutes = tmp->user_time / 60;
+        int seconds = tmp->user_time % 60;
+
+        if (task != NULL) {
+            seq_printf(m, "PID: %*ld | Process Name: %*s | CPU Time: %*i:%02i\n",
+                       15, tmp->pid,
+                       15, task->comm,
+                       15, minutes, seconds);
+        }
     }
 
     spin_unlock(&mr_lock);
