@@ -1,5 +1,3 @@
-#define LINUX
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
@@ -13,31 +11,36 @@
 
 #include "cpu_profiler.h"
 
+// Module metadata
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Pedro Domitti de Carvalho");
+MODULE_AUTHOR("CPU Profiler Linux Module");
 MODULE_DESCRIPTION("Simple CPU Profiler Linux Kernel Module");
-MODULE_VERSION("0.1");
+MODULE_VERSION("1.0");
 
+// Debug flag
 #define DEBUG 1
 
+// Name of the proc filesystem entry
 #define procfs_name "log"
 
 // Maximum size of the buffer (4 bytes)
 #define INCOMMING_MAX_SIZE 4
 
+// Timer flags
 #define TIMER_SET 0
 #define TIMER_NOT_SET 1
 
 // Spinlock
-DEFINE_SPINLOCK(mr_lock);
+DEFINE_SPINLOCK(module_read_lock);
 
 // Timer
 static struct timer_list timer_5sec;
 unsigned int timer_set;
 
-// proc filesystem and linked list data structures
+// Head of the linked list
 LIST_HEAD(cpu_profiler_linked_list);
 
+// Structure to store the PID and the CPU time
 struct user_time_pid {
     unsigned long pid;
     unsigned long user_time;
@@ -46,6 +49,7 @@ struct user_time_pid {
 
 /* Methods */
 
+// Workqueue used to process the list of processes
 static struct workqueue_struct *process_workqueue;
 
 struct cpu_profiler_work {
@@ -63,11 +67,13 @@ static void process_workqueue_function(struct work_struct *work)
     printk("Function called by the workqueue\n");
 
     // Lock the list to avoid inconsistency
-    spin_lock(&mr_lock);
+    spin_lock(&module_read_lock);
 
+    // Iterate over the list containing the processes and check if they still exist
     list_for_each_safe(pos, q, &cpu_profiler_linked_list)
     {
         tmp = list_entry(pos, struct user_time_pid, cpu_profiler_list);
+        // Using the get_cpu_use function to check if the process still exists
         ret = get_cpu_use(tmp->pid, &tmp->user_time);
 
         if (ret) {
@@ -77,7 +83,8 @@ static void process_workqueue_function(struct work_struct *work)
         }
     }
 
-    spin_unlock(&mr_lock);
+    // Unlock the list
+    spin_unlock(&module_read_lock);
 
     return;
 }
@@ -96,23 +103,27 @@ void timer_5sec_callback(struct timer_list *data)
     }
 }
 
+// Function to display proc file content
 static int log_proc_show(struct seq_file *m, void *v)
 {
     struct user_time_pid *tmp = NULL;
 
     // Lock the list to avoid inconsistency
-    spin_lock(&mr_lock);
+    spin_lock(&module_read_lock);
 
-    // It's being used seq_file because it simplifies the reading process
     list_for_each_entry(tmp, &cpu_profiler_linked_list, cpu_profiler_list)
     {
         struct task_struct *task;
+
+        // Use the find_task_by_pid macro to get the task_struct of the process
         task = find_task_by_pid(tmp->pid);
 
         int minutes = tmp->user_time / 60;
         int seconds = tmp->user_time % 60;
 
+        // Check if the process still exists. If so, print the PID, process name, and CPU time in the format MM:SS
         if (task != NULL) {
+            // Using seq_printf because we are in the context of the seq_file
             seq_printf(m, "PID: %*ld | Process Name: %*s | CPU Time: %*i:%02i\n",
                        15, tmp->pid,
                        15, task->comm,
@@ -120,14 +131,13 @@ static int log_proc_show(struct seq_file *m, void *v)
         }
     }
 
-    spin_unlock(&mr_lock);
+    spin_unlock(&module_read_lock);
 
     return 0;
 }
 
 static int log_proc_open(struct inode *inode, struct file *file)
 {
-
     printk("Calling log_proc_open.\n");
     return single_open(file, log_proc_show, NULL);
 }
@@ -162,9 +172,9 @@ ssize_t procfile_write(struct file *file, const char *buffer, size_t count, loff
     }
     else {
         // Lock the list to avoid inconsistency
-        spin_lock(&mr_lock);
+        spin_lock(&module_read_lock);
         list_add(&new_process->cpu_profiler_list, &cpu_profiler_linked_list);
-        spin_unlock(&mr_lock);
+        spin_unlock(&module_read_lock);
 
         printk("Received: %ld \n", new_process->pid);
 
@@ -178,6 +188,7 @@ ssize_t procfile_write(struct file *file, const char *buffer, size_t count, loff
     return buffer_size;
 }
 
+// Structure that defines the operations that can be performed on the proc file
 static const struct proc_ops log_proc_ops = {
     .proc_open = log_proc_open,
     .proc_read = seq_read,

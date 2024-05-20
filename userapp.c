@@ -5,6 +5,7 @@
 #include <string.h>
 #include <dirent.h>
 
+// Forcefully define DT_DIR to avoid compilation errors on some systems
 #ifndef DT_DIR
 #define DT_DIR 4
 #endif
@@ -17,10 +18,12 @@ struct top_process_info {
 // Function to parse CPU time from /proc/[pid]/stat
 unsigned long parse_cpu_time(pid_t pid)
 {
+    // Open the /proc/[pid]/stat file
     char filename[256];
     snprintf(filename, sizeof(filename), "/proc/%d/stat", pid);
 
     FILE *file = fopen(filename, "r");
+
     if (file == NULL) {
         perror("Error opening /proc/pid/stat");
         exit(EXIT_FAILURE);
@@ -33,25 +36,31 @@ unsigned long parse_cpu_time(pid_t pid)
 
     // Tokenize the line and extract the CPU time
     char *token = strtok(line, " ");
+
     for (int i = 0; i < 13; ++i) {
         token = strtok(NULL, " "); // Skip to the 14th token (utime)
     }
+
     unsigned long utime = strtoul(token, NULL, 10);
 
     token = strtok(NULL, " "); // Skip to the 15th token (stime)
     unsigned long stime = strtoul(token, NULL, 10);
 
+    // Here we are considering both user and system time
     return utime + stime;
 }
 
 int main(int argc, char *argv[])
 {
+    // Must have exactly 1 argument
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <TOP_PROCESSES_COUNT>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
     int TOP_PROCESSES_COUNT = atoi(argv[1]);
+
+    // Must be a positive integer
     if (TOP_PROCESSES_COUNT <= 0) {
         fprintf(stderr, "Invalid value for TOP_PROCESSES_COUNT\n");
         exit(EXIT_FAILURE);
@@ -67,9 +76,12 @@ int main(int argc, char *argv[])
         top_processes[i].cpu_time = 0;
     }
 
+    // Open /proc directory
     DIR *dir;
     struct dirent *entry;
+
     dir = opendir("/proc");
+
     if (dir == NULL) {
         perror("Error opening /proc directory");
         exit(EXIT_FAILURE);
@@ -79,6 +91,7 @@ int main(int argc, char *argv[])
     while ((entry = readdir(dir)) != NULL) {
         if (entry->d_type == DT_DIR) {
             pid_t pid = atoi(entry->d_name);
+
             if (pid != 0) {
                 unsigned long cpu_time = parse_cpu_time(pid);
 
@@ -104,9 +117,9 @@ int main(int argc, char *argv[])
         int file_descriptor;
         int pid = top_processes[i].pid;
 
-        file_descriptor = open("/proc/cpu_profiler/log", O_RDWR); // Open the file /proc/mp1/log
+        file_descriptor = open("/proc/cpu_profiler/log", O_RDWR); // Open the file /proc/cpu_profiler/log
 
-        write(file_descriptor, &pid, 4); // Write the PID to the file
+        write(file_descriptor, &pid, 4); // Write the PIDs of the top processes to the file
     }
 
     // This loop simulates a process running indefinitely. The bash script will kill the process at the end of the time period.
