@@ -5,6 +5,9 @@
 #include <linux/pid.h>
 #include <linux/sched.h>
 
+// Compiler complains about missing prototypes
+int get_cpu_use(int pid, unsigned long *cpu_use);
+
 // Macro to simplify the task lookup. It returns the task_struct of the process with the given PID
 #define find_task_by_pid(nr) pid_task(find_vpid(nr), PIDTYPE_PID)
 

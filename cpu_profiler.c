@@ -17,6 +17,12 @@ MODULE_AUTHOR("CPU Profiler Linux Module");
 MODULE_DESCRIPTION("Simple CPU Profiler Linux Kernel Module");
 MODULE_VERSION("1.0");
 
+// Compiler complains about missing prototypes
+void timer_5sec_callback(struct timer_list *data);
+ssize_t procfile_write(struct file *file, const char *buffer, size_t count, loff_t *offset);
+int __init cpu_profiler_init(void);
+void __exit cpu_profiler_exit(void);
+
 // Debug flag
 #define DEBUG 1
 
